@@ -1,14 +1,9 @@
-from odoo import http
-from werkzeug.utils import redirect
+from odoo.http import request, Response
 
-class HttpsRedirectController(http.Controller):
+class CustomCSPMiddleware:
+    def __call__(self, environ, start_response):
+        response = request.make_response()
+        response.headers['Content-Security-Policy'] = 'upgrade-insecure-requests'
+        return response(environ, start_response)
 
-    @http.route('/<path:full_path>', type='http', auth="public", website=True, save_session=False)
-    def redirect_to_https(self, full_path, **kwargs):
-        # Check if the request is over HTTP
-        if http.request.httprequest.environ.get('HTTP_X_FORWARDED_PROTO', 'http') == 'http':
-            # Redirect to HTTPS
-            url = http.request.httprequest.url.replace('http://', 'https://', 1)
-            return redirect(url, code=301)
-        # If already on HTTPS, proceed with the request
-        return http.request.env['ir.http'].session_info()
+# Add this middleware to your Odoo application

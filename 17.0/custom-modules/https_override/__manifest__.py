@@ -2,11 +2,10 @@
 {
     'name': "HTTPS Override",
 
-    'summary': "Override Odoo's default HTTP behavior to force HTTPS",
+    'summary': "Modify all responses to include the 'upgrade-insecure-requests' Content-Security-Policy header.",
 
     'description': """
-        This module forces all URLs within an Odoo instance to  be served over HTTPS without the use of a third party reverse proxy. Only use this module if you are unable to configure your web server to redirect HTTP traffic to HTTPS.
-    """,
+    This module allows for mixed content to be served over HTTPS by adding the 'upgrade-insecure-requests' Content-Security-Policy header to all responses.""",
 
     'author': "David Codner",
     'website': "https://www.davidcodner.me",
