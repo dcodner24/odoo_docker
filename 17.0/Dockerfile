@@ -10,7 +10,6 @@ ENV LANG en_US.UTF-8
 ARG TARGETARCH
 
 # Install some deps, lessc and less-plugin-clean-css, and wkhtmltopdf
-
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
@@ -79,6 +78,13 @@ RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/od
     && apt-get -y install --no-install-recommends ./odoo.deb \
     && rm -rf /var/lib/apt/lists/* odoo.deb
 
+# Create a new directory for custom modules and copy the modules there
+RUN mkdir -p /mnt/custom-modules
+COPY ./custom-modules /mnt/custom-modules
+
+# Ensure permissions are correct for the custom modules
+RUN chown -R odoo /mnt/custom-modules
+
 # Copy entrypoint script and Odoo configuration file
 COPY ./entrypoint.sh /
 COPY ./odoo.conf /etc/odoo/
@@ -88,6 +94,9 @@ RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /mnt/extra-addons \
     && chown -R odoo /mnt/extra-addons
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
+
+# Ensure that the custom modules directory is in the addons path
+RUN echo "\naddons_path = /mnt/custom-modules,/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons" >> /etc/odoo/odoo.conf
 
 # Expose Odoo services
 EXPOSE 8069 8071 8072
