@@ -9,7 +9,7 @@
     'author': 'Your Name',
     'depends': ['website'],
     'data': [
-        'views/website_templates.xml',
+        'views/header_updates.xml',
     ],
     'installable': True,
     'application': False,
