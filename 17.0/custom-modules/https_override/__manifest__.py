@@ -1,22 +1,16 @@
-# -*- coding: utf-8 -*-
 {
-    'name': "HTTPS Override",
-
-    'summary': "Modify all responses to include the 'upgrade-insecure-requests' Content-Security-Policy header.",
-
-    'description': """
-    This module allows for mixed content to be served over HTTPS by adding the 'upgrade-insecure-requests' Content-Security-Policy header to all responses.""",
-
-    'author': "David Codner",
-    'website': "https://www.davidcodner.me",
-
-    'category': 'Website',
+    'name': 'HTTPS Upgrade Module',
     'version': '1.0',
-
-    # any module necessary for this one to work correctly
-    'depends': ['base'],
-
+    'summary': 'Automatically upgrade HTTP URLs to HTTPS',
+    'category': 'Website',
+    'description': """
+        This module adds a Content Security Policy header to automatically upgrade all HTTP requests to HTTPS.
+    """,
+    'author': 'Your Name',
+    'depends': ['website'],
+    'data': [
+        'views/website_templates.xml',
+    ],
     'installable': True,
     'application': False,
-    'auto_install': True,
 }
