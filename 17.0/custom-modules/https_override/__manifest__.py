@@ -1,16 +1,14 @@
 {
-    'name': 'HTTPS Upgrade Module',
+    'name': 'HTTPS Upgrade',
     'version': '1.0',
-    'summary': 'Automatically upgrade HTTP URLs to HTTPS',
+    'summary': 'Automatically upgrade HTTP URLs to HTTPS across all requests.',
     'category': 'Website',
     'description': """
-        This module adds a Content Security Policy header to automatically upgrade all HTTP requests to HTTPS.
+        This module sets a Content-Security-Policy header to upgrade all HTTP requests to HTTPS.
     """,
     'author': 'Your Name',
     'depends': ['website'],
-    'data': [
-        'views/header_updates.xml',
-    ],
+    'data': [],
     'installable': True,
     'application': False,
 }

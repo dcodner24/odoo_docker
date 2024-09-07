@@ -1,7 +1,0 @@
-<odoo>
-    <template id="extend_layout" inherit_id="website.layout">
-        <xpath expr="//head" position="inside">
-            <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"/>
-        </xpath>
-    </template>
-</odoo>
