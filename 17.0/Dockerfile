@@ -4,8 +4,10 @@ MAINTAINER Odoo S.A. <info@odoo.com>
 
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 
-# Generate locale and install dependencies, including Nginx
+# Generate locale C.UTF-8 for Postgres and general locale data
 ENV LANG en_US.UTF-8
+
+# Install dependencies, including Nginx, wkhtmltopdf, and PostgreSQL client
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates curl dirmngr fonts-noto-cjk gnupg \
@@ -17,9 +19,11 @@ ARG TARGETARCH
 RUN curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.jammy_${TARGETARCH}.deb && \
     apt-get install -y ./wkhtmltox.deb && rm wkhtmltox.deb
 
-# Install Odoo
-RUN curl -o odoo.deb -sSL http://nightly.odoo.com/17.0/nightly/deb/odoo_17.0-20240826_all.deb && \
-    apt-get install -y ./odoo.deb && rm odoo.deb
+# Add Odoo repository and install Odoo
+RUN wget -O - https://nightly.odoo.com/odoo.key | apt-key add - && \
+    echo "deb http://nightly.odoo.com/17.0/nightly/deb/ ./" > /etc/apt/sources.list.d/odoo.list && \
+    apt-get update && \
+    apt-get install -y odoo
 
 # Set up custom directories
 RUN mkdir -p /mnt/custom-modules /mnt/extra-addons && chown -R odoo /mnt/custom-modules /mnt/extra-addons
