@@ -2,12 +2,12 @@
 
 set -e
 
+# Handle Postgres credentials
 if [ -v POSTGRES_PASSWORD_FILE ]; then
     PASSWORD="$(< $POSTGRES_PASSWORD_FILE)"
 fi
 
-# set the postgres database host, port, user, and password according to the environment
-# and pass them as arguments to the odoo process if not present in the config file
+# Set PostgreSQL database connection parameters
 : ${POSTGRES_HOST:=${POSTGRES_DB_PORT_5432_TCP_ADDR:='db'}}
 : ${POSTGRES_PORT:=${POSTGRES_DB_PORT_5432_TCP_PORT:=5432}}
 : ${POSTGRES_USER:=${POSTGRES_DB_ENV_POSTGRES_USER:=${POSTGRES_USER:='odoo'}}}
@@ -28,6 +28,7 @@ check_config "db_port" "$POSTGRES_PORT"
 check_config "db_user" "$POSTGRES_USER"
 check_config "db_password" "$POSTGRES_PASSWORD"
 
+# Wait for PostgreSQL to be ready
 case "$1" in
     -- | odoo)
         shift
@@ -35,11 +36,13 @@ case "$1" in
             exec odoo "$@"
         else
             wait-for-psql.py ${DB_ARGS[@]} --timeout=30
+            service nginx start
             exec odoo "$@" "${DB_ARGS[@]}"
         fi
         ;;
     -*)
         wait-for-psql.py ${DB_ARGS[@]} --timeout=30
+        service nginx start
         exec odoo "$@" "${DB_ARGS[@]}"
         ;;
     *)
