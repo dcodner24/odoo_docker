@@ -8,7 +8,9 @@
     """,
     'author': 'Your Name',
     'depends': ['website'],
-    'data': [],
+    'data': [
+        'views/layout_updates.xml',
+    ],
     'installable': True,
     'application': False,
 }

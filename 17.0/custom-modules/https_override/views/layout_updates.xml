@@ -1,0 +1,9 @@
+<odoo>
+    <!-- Inherit the base layout (web.layout) -->
+    <template id="web_meta_upgrade" inherit_id="web.layout">
+        <!-- Inject the meta tag inside the <head> -->
+        <xpath expr="//head" position="inside">
+            <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"/>
+        </xpath>
+    </template>
+</odoo>
