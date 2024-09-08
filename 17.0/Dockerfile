@@ -4,15 +4,13 @@ MAINTAINER Odoo S.A. <info@odoo.com>
 
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 
-# Generate locale C.UTF-8 for Postgres and general locale data
+# Generate locale and install dependencies, including Nginx, wget, and PostgreSQL client
 ENV LANG en_US.UTF-8
-
-# Install dependencies, including Nginx, wkhtmltopdf, and PostgreSQL client
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates curl dirmngr fonts-noto-cjk gnupg \
         libssl-dev node-less npm python3-pip postgresql-client nginx \
-        xz-utils && apt-get clean
+        xz-utils wget && apt-get clean
 
 # Install wkhtmltopdf
 ARG TARGETARCH
@@ -20,7 +18,7 @@ RUN curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/packaging/releases
     apt-get install -y ./wkhtmltox.deb && rm wkhtmltox.deb
 
 # Add Odoo repository and install Odoo
-RUN wget -O - https://nightly.odoo.com/odoo.key | apt-key add - && \
+RUN wget -O /etc/apt/trusted.gpg.d/odoo.gpg https://nightly.odoo.com/odoo.key && \
     echo "deb http://nightly.odoo.com/17.0/nightly/deb/ ./" > /etc/apt/sources.list.d/odoo.list && \
     apt-get update && \
     apt-get install -y odoo
