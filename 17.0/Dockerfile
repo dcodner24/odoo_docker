@@ -52,7 +52,7 @@ RUN case ${TARGETARCH} in \
 
 # Install Odoo
 ENV ODOO_VERSION 17.0
-RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/odoo_${ODOO_VERSION}.all.deb && \
+RUN curl -o odoo.deb -sSL http://nightly.odoo.com/17.0/nightly/deb/odoo_17.0-20240826_all.deb && \
     apt-get install -y ./odoo.deb && \
     rm -rf /var/lib/apt/lists/* odoo.deb
 
