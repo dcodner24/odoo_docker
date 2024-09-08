@@ -28,6 +28,9 @@ check_config "db_port" "$POSTGRES_PORT"
 check_config "db_user" "$POSTGRES_USER"
 check_config "db_password" "$POSTGRES_PASSWORD"
 
+# Check Nginx configuration syntax before starting
+nginx -t
+
 # Wait for PostgreSQL to be ready
 case "$1" in
     -- | odoo)
@@ -36,13 +39,14 @@ case "$1" in
             exec odoo "$@"
         else
             wait-for-psql.py ${DB_ARGS[@]} --timeout=30
-            service nginx start
+            # Start Nginx and log errors if it fails
+            service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
             exec odoo "$@" "${DB_ARGS[@]}"
         fi
         ;;
     -*)
         wait-for-psql.py ${DB_ARGS[@]} --timeout=30
-        service nginx start
+        service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
         exec odoo "$@" "${DB_ARGS[@]}"
         ;;
     *)
