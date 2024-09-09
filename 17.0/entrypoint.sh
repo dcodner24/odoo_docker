@@ -30,7 +30,7 @@ check_config "db_user" "$POSTGRES_USER"
 check_config "db_password" "$POSTGRES_PASSWORD"
 
 # Substitute environment variables in Nginx config
-envsubst '${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp
+envsubst '${PORT}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp
 mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
 
 # Validate the Nginx configuration
@@ -45,15 +45,13 @@ case "$1" in
         else
             wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
             service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
-            # Switch back to the odoo user for Odoo
-            su -s /bin/bash odoo -c "exec odoo $@ ${DB_ARGS[@]}"
+            exec odoo "$@" "${DB_ARGS[@]}"
         fi
         ;;
     -*)
         wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
         service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
-        # Switch back to the odoo user for Odoo
-        su -s /bin/bash odoo -c "exec odoo $@ ${DB_ARGS[@]}"
+        exec odoo "$@" "${DB_ARGS[@]}"
         ;;
     *)
         exec "$@"

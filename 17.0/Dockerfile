@@ -113,7 +113,7 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 RUN envsubst '${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp && mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
 
 # Expose Odoo and Nginx services
-EXPOSE 80 8069 8071 8072
+EXPOSE 80 8069 8072
 
 # Set the default config file
 ENV ODOO_RC /etc/odoo/odoo.conf
