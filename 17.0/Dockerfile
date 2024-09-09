@@ -11,10 +11,18 @@ RUN apt-get update && \
         gnupg \
         nginx \
         python3-pip \
-        postgresql-client && \
+        postgresql-client \
+        fonts-inconsolata \
+        fonts-font-awesome \
+        fonts-roboto-unhinted \
+        gsfonts \
+        libjs-underscore \
+        python3-freezegun \
+        python3-renderpm \
+        python3-ldap && \
     rm -rf /var/lib/apt/lists/*
 
-# Set up wkhtmltopdf and Odoo installation (same as before)
+# Set up wkhtmltopdf and Odoo installation
 ENV ODOO_VERSION 17.0
 RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/odoo_${ODOO_VERSION}.20240826_all.deb \
     && apt-get install -y ./odoo.deb \
