@@ -18,8 +18,8 @@ function check_config() {
     param="$1"
     value="$2"
     if grep -q -E "^\s*\b${param}\b\s*=" "$ODOO_RC" ; then       
-        value=$(grep -E "^\s*\b${param}\b\s*=" "$ODOO_RC" |cut -d " " -f3|sed 's/["\n\r]//g')
-    fi;
+        value=$(grep -E "^\s*\b${param}\b\s*=" "$ODOO_RC" | cut -d " " -f3 | sed 's/["\n\r]//g')
+    fi
     DB_ARGS+=("--${param}")
     DB_ARGS+=("${value}")
 }
@@ -33,7 +33,7 @@ check_config "db_password" "$POSTGRES_PASSWORD"
 envsubst '${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp
 mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
 
-# Check Nginx config
+# Validate the Nginx configuration
 nginx -t
 
 # Wait for PostgreSQL to be ready
@@ -43,13 +43,13 @@ case "$1" in
         if [[ "$1" == "scaffold" ]]; then
             exec odoo "$@"
         else
-            wait-for-psql.py ${DB_ARGS[@]} --timeout=30
+            wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
             service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
             exec odoo "$@" "${DB_ARGS[@]}"
         fi
         ;;
     -*)
-        wait-for-psql.py ${DB_ARGS[@]} --timeout=30
+        wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
         service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
         exec odoo "$@" "${DB_ARGS[@]}"
         ;;
