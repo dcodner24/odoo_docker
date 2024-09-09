@@ -3,9 +3,13 @@ FROM ubuntu:jammy
 
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 
+# Set non-interactive mode for apt-get to avoid timezone prompt
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install dependencies including Nginx and PostgreSQL client
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        tzdata \
         ca-certificates \
         curl \
         gnupg \
@@ -21,6 +25,9 @@ RUN apt-get update && \
         python3-renderpm \
         python3-ldap && \
     rm -rf /var/lib/apt/lists/*
+
+# Reset DEBIAN_FRONTEND to its default
+ENV DEBIAN_FRONTEND=
 
 # Set up wkhtmltopdf and Odoo installation
 ENV ODOO_VERSION 17.0
