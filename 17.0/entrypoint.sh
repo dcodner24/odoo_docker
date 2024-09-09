@@ -4,14 +4,14 @@ set -e
 
 # Handle Postgres credentials
 if [ -v POSTGRES_PASSWORD_FILE ]; then
-    PASSWORD="$(< $POSTGRES_PASSWORD_FILE)"
+    POSTGRES_PASSWORD="$(< $POSTGRES_PASSWORD_FILE)"
 fi
 
 # PostgreSQL connection parameters
-: ${POSTGRES_HOST:=${POSTGRES_DB_PORT_5432_TCP_ADDR:='db'}}
-: ${POSTGRES_PORT:=${POSTGRES_DB_PORT_5432_TCP_PORT:=5432}}
-: ${POSTGRES_USER:=${POSTGRES_DB_ENV_POSTGRES_USER:=${POSTGRES_USER:='odoo'}}}
-: ${POSTGRES_PASSWORD:=${POSTGRES_DB_ENV_POSTGRES_PASSWORD:=${POSTGRES_PASSWORD:='odoo'}}}
+: ${POSTGRES_HOST:=${POSTGRES_HOST:='db'}}
+: ${POSTGRES_PORT:=${POSTGRES_PORT:=5432}}
+: ${POSTGRES_USER:=${POSTGRES_USER:='odoo'}}
+: ${POSTGRES_PASSWORD:=${POSTGRES_PASSWORD:='odoo'}}
 
 DB_ARGS=()
 function check_config() {
@@ -23,10 +23,15 @@ function check_config() {
     DB_ARGS+=("--${param}")
     DB_ARGS+=("${value}")
 }
+
 check_config "db_host" "$POSTGRES_HOST"
 check_config "db_port" "$POSTGRES_PORT"
 check_config "db_user" "$POSTGRES_USER"
 check_config "db_password" "$POSTGRES_PASSWORD"
+
+# Substitute environment variables in Nginx config
+envsubst '${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp
+mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
 
 # Check Nginx config
 nginx -t
@@ -35,7 +40,7 @@ nginx -t
 case "$1" in
     -- | odoo)
         shift
-        if [[ "$1" == "scaffold" ]] ; then
+        if [[ "$1" == "scaffold" ]]; then
             exec odoo "$@"
         else
             wait-for-psql.py ${DB_ARGS[@]} --timeout=30
