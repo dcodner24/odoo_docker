@@ -9,7 +9,7 @@ ENV LANG en_US.UTF-8
 # Retrieve the target architecture to install the correct wkhtmltopdf package
 ARG TARGETARCH
 
-# Install dependencies, lessc, less-plugin-clean-css, and wkhtmltopdf
+# Install dependencies, lessc, less-plugin-clean-css, wkhtmltopdf, and Nginx
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
@@ -37,7 +37,8 @@ RUN apt-get update && \
         python3-xlrd \
         python3-xlwt \
         xz-utils \
-        gettext && \
+        gettext \
+        nginx && \
     if [ -z "${TARGETARCH}" ]; then \
         TARGETARCH="$(dpkg --print-architecture)"; \
     fi; \
@@ -93,15 +94,14 @@ COPY ./odoo.conf /etc/odoo/
 # Set permissions for Odoo config and Nginx
 RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /mnt/extra-addons \
-    && chown -R odoo /mnt/extra-addons
-
-# Copy and set permissions for Nginx configuration
-COPY ./nginx.conf /etc/nginx/nginx.conf
-RUN mkdir -p /etc/nginx && \
-    chown -R odoo /etc/nginx && chmod -R 755 /etc/nginx
+    && chown -R odoo /mnt/extra-addons \
+    && chown -R odoo /etc/nginx && chmod -R 755 /etc/nginx
 
 # Ensure that the custom modules directory is in the addons path
 RUN echo "\naddons_path = /mnt/custom-modules,/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons" >> /etc/odoo/odoo.conf
+
+# Configure Nginx
+COPY ./nginx.conf /etc/nginx/nginx.conf
 
 # Use envsubst to substitute SERVER_NAME in the Nginx configuration
 RUN envsubst '${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp && mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
