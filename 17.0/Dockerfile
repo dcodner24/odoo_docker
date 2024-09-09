@@ -7,9 +7,6 @@ SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 # Generate locale C.UTF-8 for postgres and general locale data
 ENV LANG en_US.UTF-8
 
-# Retrieve the target architecture to install the correct wkhtmltopdf package
-ARG TARGETARCH
-
 # Install dependencies, including Nginx and PostgreSQL client
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
@@ -92,6 +89,9 @@ COPY ./entrypoint.sh /
 COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./odoo.conf /etc/odoo/
 
+# Set permissions for Nginx logs
+RUN mkdir -p /var/log/nginx && chmod -R 777 /var/log/nginx
+
 # Set permissions and Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users addons
 RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /mnt/extra-addons \
@@ -101,7 +101,7 @@ VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
 # Ensure that the custom modules directory is in the addons path
 RUN echo "\naddons_path = /mnt/custom-modules,/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons" >> /etc/odoo/odoo.conf
 
-# Expose Odoo services and Nginx
+# Expose Odoo and Nginx services
 EXPOSE 80 8069 8071 8072
 
 # Set the default config file
