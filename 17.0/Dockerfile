@@ -52,7 +52,7 @@ RUN apt-get update && \
     && apt-get install -y --no-install-recommends ./wkhtmltox.deb \
     && rm -rf /var/lib/apt/lists/* wkhtmltox.deb
 
-# Install latest postgresql-client
+# install latest postgresql-client
 RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ jammy-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
     && GNUPGHOME="$(mktemp -d)" \
     && export GNUPGHOME \
@@ -90,10 +90,11 @@ RUN chown -R odoo /mnt/custom-modules
 COPY ./entrypoint.sh /
 COPY ./odoo.conf /etc/odoo/
 
-# Set permissions and Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users' addons
+# Set permissions for Odoo config and Nginx
 RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /mnt/extra-addons \
-    && chown -R odoo /mnt/extra-addons
+    && chown -R odoo /mnt/extra-addons \
+    && chown -R odoo /etc/nginx && chmod -R 755 /etc/nginx
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
 
 # Ensure that the custom modules directory is in the addons path
