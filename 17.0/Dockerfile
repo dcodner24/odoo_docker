@@ -1,4 +1,3 @@
-# Use Ubuntu base image
 FROM ubuntu:jammy
 MAINTAINER Odoo S.A. <info@odoo.com>
 
@@ -60,11 +59,11 @@ RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ jammy-pgdg main' > /etc/a
     && gpgconf --kill all \
     && rm -rf "$GNUPGHOME" \
     && apt-get update  \
-    && apt-get install --no-install-recommends -y postgresql-client \
+    && apt-get install --no-recommends -y postgresql-client \
     && rm -f /etc/apt/sources.list.d/pgdg.list \
     && rm -rf /var/lib/apt/lists/*
 
-# Install rtlcss (on Debian buster)
+# Install rtlcss globally
 RUN npm install -g rtlcss
 
 # Install Odoo
