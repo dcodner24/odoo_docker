@@ -78,7 +78,7 @@ RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/od
     && rm -rf /var/lib/apt/lists/* odoo.deb
 
 # Copy configuration files
-COPY ./17.0/odoo.conf /etc/odoo/odoo.conf
+COPY ./odoo.conf /etc/odoo/odoo.conf
 COPY ./nginx.conf /etc/nginx/nginx.conf
 
 # Set log permissions
@@ -91,7 +91,7 @@ RUN mkdir -p /mnt/custom-modules /mnt/extra-addons && chown -R odoo /mnt/custom-
 EXPOSE 80 8069 8071 8072
 
 # Set the default config file
-ENV ODOO_RC=./odoo.conf
+ENV ODOO_RC=/etc/odoo/odoo.conf
 
 COPY wait-for-psql.py /usr/local/bin/wait-for-psql.py
 
