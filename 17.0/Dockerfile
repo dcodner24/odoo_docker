@@ -45,6 +45,13 @@ RUN apt-get update && \
     && apt-get install -y ./wkhtmltox.deb \
     && rm -rf /var/lib/apt/lists/* wkhtmltox.deb
 
+# Install Python dependencies via pip that are not available via apt
+RUN pip3 install \
+    werkzeug \
+    xlsxwriter \
+    zeep \
+    freezegun
+
 # Install Odoo
 ENV ODOO_VERSION 17.0
 ARG ODOO_RELEASE=20240904
