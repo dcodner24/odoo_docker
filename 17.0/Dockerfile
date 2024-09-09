@@ -98,8 +98,10 @@ RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /var/log/nginx \
     && chown -R odoo /var/log/nginx \
     && chmod -R 755 /var/log/nginx \
+    && mkdir -p /run/nginx \
+    && chown -R odoo /run/nginx \
+    && chmod -R 755 /run/nginx \
     && chown -R odoo /etc/nginx && chmod -R 755 /etc/nginx
-
 
 # Ensure that the custom modules directory is in the addons path
 RUN echo "\naddons_path = /mnt/custom-modules,/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons" >> /etc/odoo/odoo.conf
