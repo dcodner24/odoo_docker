@@ -91,7 +91,7 @@ RUN mkdir -p /mnt/custom-modules /mnt/extra-addons && chown -R odoo /mnt/custom-
 EXPOSE 80 8069 8071 8072
 
 # Set the default config file
-ENV ODOO_RC=/etc/odoo/odoo.conf
+ENV ODOO_RC=./odoo.conf
 
 COPY wait-for-psql.py /usr/local/bin/wait-for-psql.py
 
