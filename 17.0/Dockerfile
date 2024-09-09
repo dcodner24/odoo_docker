@@ -1,16 +1,15 @@
-# Use Ubuntu base image
 FROM ubuntu:jammy
 MAINTAINER Odoo S.A. <info@odoo.com>
 
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 
-# Generate locale C.UTF-8 for postgres and general locale data
+# Generate locale C.UTF-8 for Postgres and general locale data
 ENV LANG en_US.UTF-8
 
 # Retrieve the target architecture to install the correct wkhtmltopdf package
 ARG TARGETARCH
 
-# Install dependencies, including Nginx and PostgreSQL client
+# Install dependencies, lessc, less-plugin-clean-css, and wkhtmltopdf
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
@@ -22,7 +21,6 @@ RUN apt-get update && \
         libssl-dev \
         node-less \
         npm \
-        nginx \
         python3-magic \
         python3-num2words \
         python3-odf \
@@ -39,12 +37,8 @@ RUN apt-get update && \
         python3-xlrd \
         python3-xlwt \
         xz-utils \
-        fontconfig \
-        libxext6 \
-        libxrender1 \
-        xfonts-75dpi \
-        xfonts-base \
-    && if [ -z "${TARGETARCH}" ]; then \
+        gettext && \
+    if [ -z "${TARGETARCH}" ]; then \
         TARGETARCH="$(dpkg --print-architecture)"; \
     fi; \
     WKHTMLTOPDF_ARCH=${TARGETARCH} && \
@@ -96,14 +90,7 @@ RUN chown -R odoo /mnt/custom-modules
 COPY ./entrypoint.sh /
 COPY ./odoo.conf /etc/odoo/
 
-# Configure Nginx
-COPY ./nginx.conf /etc/nginx/nginx.conf
-RUN envsubst '${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp && mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
-
-# Start Nginx and check configuration
-RUN service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
-
-# Set permissions and mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users addons
+# Set permissions and Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users' addons
 RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /mnt/extra-addons \
     && chown -R odoo /mnt/extra-addons
@@ -112,8 +99,14 @@ VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
 # Ensure that the custom modules directory is in the addons path
 RUN echo "\naddons_path = /mnt/custom-modules,/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons" >> /etc/odoo/odoo.conf
 
-# Expose necessary ports
-EXPOSE 80 8069 8072
+# Configure Nginx
+COPY ./nginx.conf /etc/nginx/nginx.conf
+
+# Use envsubst to substitute SERVER_NAME in the Nginx configuration
+RUN envsubst '${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp && mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
+
+# Expose Odoo and Nginx services
+EXPOSE 80 8069 8071 8072
 
 # Set the default config file
 ENV ODOO_RC /etc/odoo/odoo.conf
