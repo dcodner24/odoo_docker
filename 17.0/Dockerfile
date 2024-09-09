@@ -99,7 +99,7 @@ RUN chown odoo /etc/odoo/odoo.conf \
     && chown -R odoo /var/log/nginx \
     && chmod -R 755 /var/log/nginx \
     && mkdir -p /run/nginx \
-    && chown -R odoo /run/nginx \
+    && chown -R root /run/nginx \
     && chmod -R 755 /run/nginx \
     && chown -R odoo /etc/nginx && chmod -R 755 /etc/nginx
 
@@ -112,11 +112,6 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 # Use envsubst to substitute SERVER_NAME in the Nginx configuration
 RUN envsubst '${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp && mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
 
-# Fix permissions for Nginx pid file
-RUN mkdir -p /run/nginx && \
-    chown -R odoo /run/nginx && \
-    chmod -R 755 /run/nginx
-
 # Expose Odoo and Nginx services
 EXPOSE 80 8069 8071 8072
 
@@ -125,8 +120,7 @@ ENV ODOO_RC /etc/odoo/odoo.conf
 
 COPY wait-for-psql.py /usr/local/bin/wait-for-psql.py
 
-# Set default user when running the container
-USER odoo
-
+# Set default user to odoo after Nginx starts
+USER root
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["odoo"]

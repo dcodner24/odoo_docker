@@ -45,16 +45,12 @@ case "$1" in
         else
             wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
             service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
-            exec odoo "$@" "${DB_ARGS[@]}"
+            # Switch back to the odoo user for Odoo
+            su -s /bin/bash odoo -c "exec odoo $@ ${DB_ARGS[@]}"
         fi
         ;;
     -*)
         wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
         service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
-        exec odoo "$@" "${DB_ARGS[@]}"
-        ;;
-    *)
-        exec "$@"
-esac
-
-exit 1
+        # Switch back to the odoo user for Odoo
+        su -s /bin/bash odoo -c "exec odoo $
