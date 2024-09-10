@@ -84,6 +84,9 @@ RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/od
     && apt-get -y install --no-install-recommends ./odoo.deb \
     && rm -rf /var/lib/apt/lists/* odoo.deb
 
+# Ensure Odoo is in the PATH
+ENV PATH="/usr/bin:${PATH}"
+
 # Create a new directory for custom modules and copy the modules there
 RUN mkdir -p /mnt/custom-modules
 COPY ./custom-modules /mnt/custom-modules
