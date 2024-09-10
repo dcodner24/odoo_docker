@@ -40,17 +40,18 @@ nginx -t || exit 1
 
 # Wait for PostgreSQL to be ready
 echo "Waiting for PostgreSQL..."
-for i in {1..30}; do
-    if wait-for-psql.py "${DB_ARGS[@]}" --timeout=10; then
+echo "Connection details: Host=$POSTGRES_HOST, Port=$POSTGRES_PORT, User=$POSTGRES_USER"
+for i in {1..60}; do
+    if wait-for-psql.py "${DB_ARGS[@]}" --timeout=5; then
         echo "PostgreSQL is ready"
         break
     fi
-    echo "PostgreSQL is not ready yet. Retrying..."
-    sleep 2
+    echo "Attempt $i: PostgreSQL is not ready yet. Retrying in 5 seconds..."
+    sleep 5
 done
 
-if [ $i -eq 30 ]; then
-    echo "PostgreSQL connection failed after 30 attempts. Exiting."
+if [ $i -eq 60 ]; then
+    echo "PostgreSQL connection failed after 60 attempts (5 minutes). Exiting."
     exit 1
 fi
 
