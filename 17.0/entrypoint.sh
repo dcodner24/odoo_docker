@@ -38,13 +38,21 @@ envsubst '${PORT} ${SERVER_NAME}' < /etc/nginx/nginx.conf.template > /etc/nginx/
 # Validate the Nginx configuration
 nginx -t || exit 1
 
-# Start Nginx
-nginx || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
-
 # Wait for PostgreSQL to be ready
 echo "Waiting for PostgreSQL..."
-wait-for-psql.py "${DB_ARGS[@]}" --timeout=60 || { echo "PostgreSQL connection failed"; exit 1; }
-echo "PostgreSQL is ready"
+for i in {1..30}; do
+    if wait-for-psql.py "${DB_ARGS[@]}" --timeout=10; then
+        echo "PostgreSQL is ready"
+        break
+    fi
+    echo "PostgreSQL is not ready yet. Retrying..."
+    sleep 2
+done
+
+if [ $i -eq 30 ]; then
+    echo "PostgreSQL connection failed after 30 attempts. Exiting."
+    exit 1
+fi
 
 # Print database connection details
 echo "Database connection details:"
@@ -52,6 +60,10 @@ echo "Host: $POSTGRES_HOST"
 echo "Port: $POSTGRES_PORT"
 echo "User: $POSTGRES_USER"
 echo "Database: ${POSTGRES_DB:-postgres}"
+
+# Start Nginx
+echo "Starting Nginx..."
+nginx
 
 # Start Odoo
 echo "Starting Odoo..."
