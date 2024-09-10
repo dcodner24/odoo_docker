@@ -29,8 +29,11 @@ check_config "db_port" "$POSTGRES_PORT"
 check_config "db_user" "$POSTGRES_USER"
 check_config "db_password" "$POSTGRES_PASSWORD"
 
+# Set default SERVER_NAME if not provided
+: ${SERVER_NAME:=${SERVER_NAME:='localhost'}}
+
 # Substitute environment variables in Nginx config
-envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+envsubst '${PORT} ${SERVER_NAME}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
 # Validate the Nginx configuration
 nginx -t || exit 1
