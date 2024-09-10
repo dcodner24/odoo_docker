@@ -35,25 +35,11 @@ envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 # Validate the Nginx configuration
 nginx -t || exit 1
 
-# Wait for PostgreSQL to be ready
-case "$1" in
-    -- | odoo)
-        shift
-        if [[ "$1" == "scaffold" ]]; then
-            exec odoo "$@"
-        else
-            wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
-            service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
-            exec odoo "$@" "${DB_ARGS[@]}"
-        fi
-        ;;
-    -*)
-        wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
-        service nginx start || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
-        exec odoo "$@" "${DB_ARGS[@]}"
-        ;;
-    *)
-        exec "$@"
-esac
+# Start Nginx
+nginx || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
 
-exit 1
+# Wait for PostgreSQL to be ready
+wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
+
+# Start Odoo
+exec odoo "$@" "${DB_ARGS[@]}"
