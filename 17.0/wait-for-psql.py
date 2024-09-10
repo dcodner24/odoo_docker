@@ -11,7 +11,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--db_port', required=True)
     arg_parser.add_argument('--db_user', required=True)
     arg_parser.add_argument('--db_password', required=True)
-    arg_parser.add_argument('--timeout', type=int, default=5)
+    arg_parser.add_argument('--timeout', type=int, default=30)
 
     args = arg_parser.parse_args()
 
@@ -22,13 +22,20 @@ if __name__ == '__main__':
     start_time = time.time()
     while (time.time() - start_time) < args.timeout:
         try:
-            conn = psycopg2.connect(user=args.db_user, host=args.db_host, port=args.db_port,
-                                    password=args.db_password, dbname=db_name)
+            conn = psycopg2.connect(
+                user=args.db_user,
+                host=args.db_host,
+                port=args.db_port,
+                password=args.db_password,
+                dbname=db_name,
+                connect_timeout=3
+            )
             print("Successfully connected to the database")
             conn.close()
             sys.exit(0)
         except psycopg2.OperationalError as e:
             print(f"Failed to connect. Error: {e}")
+            print(f"Connection details: host={args.db_host}, port={args.db_port}, user={args.db_user}, dbname={db_name}")
         time.sleep(1)
 
     print(f"Database connection failure after {args.timeout} seconds", file=sys.stderr)
