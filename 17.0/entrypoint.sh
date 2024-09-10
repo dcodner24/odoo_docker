@@ -30,11 +30,10 @@ check_config "db_user" "$POSTGRES_USER"
 check_config "db_password" "$POSTGRES_PASSWORD"
 
 # Substitute environment variables in Nginx config
-envsubst '${PORT}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp
-mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
+envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
 # Validate the Nginx configuration
-nginx -t
+nginx -t || exit 1
 
 # Wait for PostgreSQL to be ready
 case "$1" in
