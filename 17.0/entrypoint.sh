@@ -70,6 +70,10 @@ nginx
 
 # Start Odoo
 echo "Starting Odoo..."
+echo "Current PATH: $PATH"
+echo "Searching for Odoo executable:"
+which odoo || echo "odoo not found in PATH"
+
 if command -v odoo &> /dev/null; then
     echo "Using 'odoo' command"
     exec odoo "$@" "${DB_ARGS[@]}"
@@ -81,7 +85,9 @@ elif [ -f /usr/local/bin/odoo ]; then
     exec /usr/local/bin/odoo "$@" "${DB_ARGS[@]}"
 else
     echo "Error: Odoo executable not found"
-    echo "Searching for Odoo in common locations:"
-    find / -name odoo 2>/dev/null
+    echo "Contents of /usr/bin:"
+    ls -l /usr/bin | grep odoo
+    echo "Contents of /usr/local/bin:"
+    ls -l /usr/local/bin | grep odoo
     exit 1
 fi
