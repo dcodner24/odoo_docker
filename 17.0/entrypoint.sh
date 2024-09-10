@@ -42,7 +42,17 @@ nginx -t || exit 1
 nginx || (echo "Nginx failed to start" && cat /var/log/nginx/error.log)
 
 # Wait for PostgreSQL to be ready
-wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
+echo "Waiting for PostgreSQL..."
+wait-for-psql.py "${DB_ARGS[@]}" --timeout=60 || { echo "PostgreSQL connection failed"; exit 1; }
+echo "PostgreSQL is ready"
+
+# Print database connection details
+echo "Database connection details:"
+echo "Host: $POSTGRES_HOST"
+echo "Port: $POSTGRES_PORT"
+echo "User: $POSTGRES_USER"
+echo "Database: ${POSTGRES_DB:-postgres}"
 
 # Start Odoo
+echo "Starting Odoo..."
 exec odoo "$@" "${DB_ARGS[@]}"

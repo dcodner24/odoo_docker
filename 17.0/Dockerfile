@@ -117,12 +117,13 @@ COPY ./nginx.conf /etc/nginx/nginx.conf.template
 RUN rm -f /etc/nginx/conf.d/default.conf
 
 # Expose Odoo and Nginx services
-EXPOSE 80 8069 8072
+EXPOSE 8069 8072
 
 # Set the default config file
 ENV ODOO_RC /etc/odoo/odoo.conf
 
 COPY wait-for-psql.py /usr/local/bin/wait-for-psql.py
+RUN chmod +x /usr/local/bin/wait-for-psql.py
 
 # Set default user to odoo after Nginx starts
 USER root
