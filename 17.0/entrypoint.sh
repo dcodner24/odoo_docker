@@ -79,10 +79,10 @@ if command -v odoo &> /dev/null; then
     exec odoo "$@" "${DB_ARGS[@]}"
 elif [ -f /usr/bin/odoo ]; then
     echo "Using '/usr/bin/odoo'"
-    exec /usr/bin/odoo "$@" "${DB_ARGS[@]}"
+    exec python3 /usr/bin/odoo "$@" "${DB_ARGS[@]}"
 elif [ -f /usr/local/bin/odoo ]; then
     echo "Using '/usr/local/bin/odoo'"
-    exec /usr/local/bin/odoo "$@" "${DB_ARGS[@]}"
+    exec python3 /usr/local/bin/odoo "$@" "${DB_ARGS[@]}"
 else
     echo "Error: Odoo executable not found"
     echo "Contents of /usr/bin:"

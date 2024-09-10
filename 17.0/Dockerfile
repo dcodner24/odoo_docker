@@ -84,6 +84,9 @@ RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/od
     && apt-get -y install --no-install-recommends ./odoo.deb \
     && rm -rf /var/lib/apt/lists/* odoo.deb
 
+# Make sure the Odoo script is executable
+RUN chmod +x /usr/bin/odoo
+
 # Ensure Odoo is in the PATH
 ENV PATH="/usr/bin:/usr/local/bin:${PATH}"
 
