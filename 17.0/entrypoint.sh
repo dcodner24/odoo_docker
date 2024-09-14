@@ -64,25 +64,21 @@ echo "Port: $POSTGRES_PORT"
 echo "User: $POSTGRES_USER"
 echo "Database: ${POSTGRES_DB:-postgres}"
 
-# Start Nginx
-echo "Starting Nginx..."
-nginx
-
 # Start Odoo
 echo "Starting Odoo..."
 echo "Current PATH: $PATH"
 echo "Searching for Odoo executable:"
 which odoo || echo "odoo not found in PATH"
 
-if command -v odoo &> /dev/null; then
-    echo "Using 'odoo' command"
-    exec odoo "$@" "${DB_ARGS[@]}"
-elif [ -f /usr/bin/odoo ]; then
+if [ -f /usr/bin/odoo ]; then
     echo "Using '/usr/bin/odoo'"
-    exec python3 /usr/bin/odoo "$@" "${DB_ARGS[@]}"
+    python3 /usr/bin/odoo "$@" "${DB_ARGS[@]}" &
 elif [ -f /usr/local/bin/odoo ]; then
     echo "Using '/usr/local/bin/odoo'"
-    exec python3 /usr/local/bin/odoo "$@" "${DB_ARGS[@]}"
+    python3 /usr/local/bin/odoo "$@" "${DB_ARGS[@]}" &
+elif command -v odoo &> /dev/null; then
+    echo "Using 'odoo' command"
+    python3 $(which odoo) "$@" "${DB_ARGS[@]}" &
 else
     echo "Error: Odoo executable not found"
     echo "Contents of /usr/bin:"
@@ -91,3 +87,14 @@ else
     ls -l /usr/local/bin | grep odoo
     exit 1
 fi
+
+# Wait for Odoo to start
+echo "Waiting for Odoo to start..."
+sleep 10
+
+# Start Nginx
+echo "Starting Nginx..."
+nginx
+
+# Keep the container running
+wait
