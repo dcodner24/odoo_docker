@@ -100,6 +100,12 @@ COPY ./custom-modules /mnt/custom-modules
 # Ensure permissions are correct for the custom modules
 RUN chown -R odoo /mnt/custom-modules
 
+# Install Nginx
+RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+
+# Copy Nginx configuration template
+COPY ./nginx.conf.template /etc/nginx/nginx.conf.template
+
 # Copy entrypoint script, Odoo configuration file, and wait-for-psql script
 COPY ./entrypoint.sh /
 COPY ./odoo.conf /etc/odoo/

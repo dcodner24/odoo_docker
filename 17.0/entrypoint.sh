@@ -73,14 +73,14 @@ if [ $i -eq 30 ]; then
 fi
 
 # Substitute environment variables in Nginx config
-envsubst '${PORT} ${SERVER_NAME}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+sudo -u root bash -c "envsubst '\${PORT} \${SERVER_NAME}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf"
 
 # Validate the Nginx configuration
-nginx -t || exit 1
+sudo -u root nginx -t || exit 1
 
 # Start Nginx
 echo "Starting Nginx..."
-nginx
+sudo -u root nginx
 
 # Keep the container running
 wait $ODOO_PID
