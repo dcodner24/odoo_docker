@@ -76,13 +76,16 @@ RUN npm install -g rtlcss
 
 # Install Odoo
 ENV ODOO_VERSION 17.0
-ARG ODOO_RELEASE=20240826
-ARG ODOO_SHA=7f40f642e89d8ecd43d748c23dc4251fcdca84ca
+ARG ODOO_RELEASE=20240912
+ARG ODOO_SHA=4456afb92e3235660c711160b1f457d31902c391
 RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/odoo_${ODOO_VERSION}.${ODOO_RELEASE}_all.deb \
     && echo "${ODOO_SHA} odoo.deb" | sha1sum -c - \
     && apt-get update \
     && apt-get -y install --no-install-recommends ./odoo.deb \
     && rm -rf /var/lib/apt/lists/* odoo.deb
+
+# Add Odoo to PATH
+ENV PATH=$PATH:/usr/bin
 
 # Make sure the Odoo script is executable
 RUN chmod +x /usr/bin/odoo
@@ -97,41 +100,30 @@ COPY ./custom-modules /mnt/custom-modules
 # Ensure permissions are correct for the custom modules
 RUN chown -R odoo /mnt/custom-modules
 
-# Copy entrypoint script and Odoo configuration file
+# Copy entrypoint script, Odoo configuration file, and wait-for-psql script
 COPY ./entrypoint.sh /
 COPY ./odoo.conf /etc/odoo/
+COPY ./wait-for-psql.py /usr/local/bin/wait-for-psql.py
 
-# Set permissions for Odoo config and Nginx
+# Set permissions and Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users addons
 RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /mnt/extra-addons \
     && chown -R odoo /mnt/extra-addons \
-    && mkdir -p /var/log/nginx \
-    && chown -R odoo /var/log/nginx \
-    && chmod -R 755 /var/log/nginx \
-    && mkdir -p /run/nginx \
-    && chown -R root /run/nginx \
-    && chmod -R 755 /run/nginx \
-    && chown -R odoo /etc/nginx && chmod -R 755 /etc/nginx
+    && chmod +x /entrypoint.sh /usr/local/bin/wait-for-psql.py
 
-# Ensure that the custom modules directory is in the addons path
-RUN echo "\naddons_path = /mnt/custom-modules,/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons" >> /etc/odoo/odoo.conf
+VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
 
-# Configure Nginx
-COPY ./nginx.conf /etc/nginx/nginx.conf.template
-
-# Remove any default Nginx configurations
-RUN rm -f /etc/nginx/conf.d/default.conf
-
-# Expose Odoo and Nginx services
-EXPOSE 8069 8072
+# Expose Odoo services
+EXPOSE 8069 8071 8072
 
 # Set the default config file
 ENV ODOO_RC /etc/odoo/odoo.conf
 
-COPY wait-for-psql.py /usr/local/bin/wait-for-psql.py
-RUN chmod +x /usr/local/bin/wait-for-psql.py
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Set default user to odoo after Nginx starts
-USER root
+# Set default user when running the container
+USER odoo
+
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["odoo"]
+CMD ["--config", "/etc/odoo/odoo.conf"]

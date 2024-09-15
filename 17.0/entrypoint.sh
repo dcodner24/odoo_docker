@@ -32,69 +32,55 @@ check_config "db_password" "$POSTGRES_PASSWORD"
 # Set default SERVER_NAME if not provided
 : ${SERVER_NAME:=${SERVER_NAME:='localhost'}}
 
+# Wait for PostgreSQL to be ready
+echo "Waiting for PostgreSQL..."
+if ! wait-for-psql.py --db_host="$POSTGRES_HOST" --db_port="$POSTGRES_PORT" --db_user="$POSTGRES_USER" --db_password="$POSTGRES_PASSWORD" --timeout=60; then
+    echo "PostgreSQL is not available. Exiting."
+    exit 1
+fi
+
+echo "PostgreSQL is ready"
+
+# Start Odoo
+echo "Starting Odoo..."
+ODOO_CMD="/usr/bin/odoo"
+if [ ! -f "$ODOO_CMD" ]; then
+    echo "Error: Odoo executable not found at $ODOO_CMD"
+    exit 1
+fi
+
+$ODOO_CMD "$@" "${DB_ARGS[@]}" &
+ODOO_PID=$!
+
+# Wait for Odoo to become responsive
+echo "Waiting for Odoo to start..."
+for i in {1..30}; do
+    if curl -s http://localhost:8069 > /dev/null; then
+        echo "Odoo is up and running"
+        break
+    fi
+    if ! ps -p $ODOO_PID > /dev/null; then
+        echo "Odoo process has died. Exiting."
+        exit 1
+    fi
+    echo "Waiting for Odoo to become responsive... (attempt $i)"
+    sleep 2
+done
+
+if [ $i -eq 30 ]; then
+    echo "Odoo did not start within 60 seconds. Exiting."
+    exit 1
+fi
+
 # Substitute environment variables in Nginx config
 envsubst '${PORT} ${SERVER_NAME}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
 # Validate the Nginx configuration
 nginx -t || exit 1
 
-# Wait for PostgreSQL to be ready
-echo "Waiting for PostgreSQL..."
-echo "Connection details: Host=$POSTGRES_HOST, Port=$POSTGRES_PORT, User=$POSTGRES_USER"
-for i in {1..12}; do
-    if wait-for-psql.py --db_host="$POSTGRES_HOST" --db_port="$POSTGRES_PORT" --db_user="$POSTGRES_USER" --db_password="$POSTGRES_PASSWORD" --timeout=30; then
-        echo "PostgreSQL is ready"
-        break
-    fi
-    echo "Attempt $i: PostgreSQL is not ready yet. Retrying in 5 seconds..."
-    sleep 5
-done
-
-if [ $i -eq 12 ]; then
-    echo "PostgreSQL connection failed after 12 attempts (5 minutes). Exiting."
-    echo "Last connection attempt details:"
-    wait-for-psql.py --db_host="$POSTGRES_HOST" --db_port="$POSTGRES_PORT" --db_user="$POSTGRES_USER" --db_password="$POSTGRES_PASSWORD" --timeout=30
-    exit 1
-fi
-
-# Print database connection details
-echo "Database connection successful:"
-echo "Host: $POSTGRES_HOST"
-echo "Port: $POSTGRES_PORT"
-echo "User: $POSTGRES_USER"
-echo "Database: ${POSTGRES_DB:-postgres}"
-
-# Start Odoo
-echo "Starting Odoo..."
-echo "Current PATH: $PATH"
-echo "Searching for Odoo executable:"
-which odoo || echo "odoo not found in PATH"
-
-if [ -f /usr/bin/odoo ]; then
-    echo "Using '/usr/bin/odoo'"
-    python3 /usr/bin/odoo "$@" "${DB_ARGS[@]}" &
-elif [ -f /usr/local/bin/odoo ]; then
-    echo "Using '/usr/local/bin/odoo'"
-    python3 /usr/local/bin/odoo "$@" "${DB_ARGS[@]}" &
-elif command -v odoo &> /dev/null; then
-    echo "Using 'odoo' command"
-    python3 $(which odoo) "$@" "${DB_ARGS[@]}" &
-else
-    echo "Error: Odoo executable not found"
-    echo "Contents of /usr/bin:"
-    ls -l /usr/bin | grep odoo
-    echo "Contents of /usr/local/bin:"
-    ls -l /usr/local/bin | grep odoo
-    exit 1
-fi
-
-# Wait for Odoo to start
-echo "Waiting for Odoo to start..."
-sleep 10
-
 # Start Nginx
 echo "Starting Nginx..."
 nginx
 
 # Keep the container running
-wait
+wait $ODOO_PID
