@@ -7,7 +7,10 @@ SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 ENV LANG en_US.UTF-8
 
 # Install some deps, lessc and less-plugin-clean-css, and wkhtmltopdf
-RUN apt-get update && \
+USER root
+RUN set -e && \
+    echo "Starting dependency installation as root..." && \
+    apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -34,11 +37,15 @@ RUN apt-get update && \
         python3-xlrd \
         python3-xlwt \
         xz-utils \
-        nginx \
-    && curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.jammy_amd64.deb \
-    && echo "967390a759707337b46d1c02452e2bb6b2dc6d59 wkhtmltox.deb" | sha1sum -c - \
-    && apt-get install -y --no-install-recommends ./wkhtmltox.deb \
-    && rm -rf /var/lib/apt/lists/* wkhtmltox.deb
+        nginx && \
+    echo "Downloading wkhtmltopdf..." && \
+    curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.jammy_amd64.deb && \
+    echo "Verifying wkhtmltopdf package..." && \
+    echo "967390a759707337b46d1c02452e2bb6b2dc6d59 wkhtmltox.deb" | sha1sum -c - && \
+    echo "Installing wkhtmltopdf..." && \
+    apt-get install -y --no-install-recommends ./wkhtmltox.deb && \
+    rm -rf /var/lib/apt/lists/* wkhtmltox.deb && \
+    echo "Dependency installation completed successfully."
 
 # install latest postgresql-client
 RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ jammy-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
@@ -104,18 +111,26 @@ EXPOSE 8069 8071 8072
 # Set the default config file
 ENV ODOO_RC /etc/odoo/odoo.conf
 
-# Set default user when running the container
+# Switch back to odoo user for security
 USER odoo
 
 # Add logging for build process
-RUN echo "Odoo version: $ODOO_VERSION" && \
+RUN set -e && \
+    echo "Build summary:" && \
+    echo "Odoo version: $ODOO_VERSION" && \
     echo "Odoo release: $ODOO_RELEASE" && \
     echo "Odoo SHA: $ODOO_SHA" && \
+    echo "Python version: $(python3 --version)" && \
+    echo "Nginx version: $(nginx -v 2>&1)" && \
     echo "Build completed successfully."
 
 # Log the final state of the image
-RUN echo "Final image state:" && \
+RUN set -e && \
+    echo "Final image state:" && \
     ls -R /
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["odoo"]
+
+# Add a final log message
+RUN echo "Dockerfile execution completed. Image is ready."
