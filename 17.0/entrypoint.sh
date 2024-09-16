@@ -146,10 +146,10 @@ chmod 644 /etc/odoo/odoo.conf
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Updated permissions:"
 ls -l /etc/odoo/odoo.conf
 
-exec "$ODOO_CMD" -c /etc/odoo/odoo.conf "$@" \
+exec \$ODOO_CMD -c /etc/odoo/odoo.conf \
     --db_host=${POSTGRES_HOST:-db} \
     --db_port=${POSTGRES_PORT:-5432} \
     --db_user=${POSTGRES_USER:-odoo} \
     --db_password=${POSTGRES_PASSWORD:-odoo} \
-    -d ${POSTGRES_DB:-postgres}
+    -d ${POSTGRES_DB:-postgres} "\$@"
 EOF
