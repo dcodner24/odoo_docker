@@ -124,10 +124,12 @@ RUN set -e && \
     echo "Nginx version: $(nginx -v 2>&1)" && \
     echo "Build completed successfully."
 
-# Log the final state of the image
+# Log a safer subset of the final image state
 RUN set -e && \
-    echo "Final image state:" && \
-    ls -R /
+    echo "Final image state (safe subset):" && \
+    ls -l /home/odoo && \
+    ls -l /etc/odoo && \
+    ls -l /mnt/extra-addons
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["odoo"]
