@@ -76,11 +76,21 @@ exec gosu odoo bash << EOF
 
 # Start Odoo
 echo "Starting Odoo..."
-ODOO_CMD="/usr/bin/odoo"
-if [ ! -f "$ODOO_CMD" ]; then
-    echo "Error: Odoo executable not found at $ODOO_CMD"
+# Try to find the Odoo executable
+ODOO_CMD=$(which odoo)
+if [ -z "$ODOO_CMD" ]; then
+    ODOO_CMD=$(which openerp-server)
+fi
+if [ -z "$ODOO_CMD" ]; then
+    echo "Error: Odoo executable not found in PATH"
+    echo "Current PATH: $PATH"
+    echo "Searching for Odoo executable..."
+    find / -name odoo -type f 2>/dev/null || echo "No 'odoo' executable found"
+    find / -name openerp-server -type f 2>/dev/null || echo "No 'openerp-server' executable found"
     exit 1
 fi
+
+echo "Odoo executable found at $ODOO_CMD"
 
 # Use envsubst to replace ${ADDONS_PATH} in odoo.conf
 echo "Updating Odoo configuration..."
