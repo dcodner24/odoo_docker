@@ -37,7 +37,8 @@ RUN set -e && \
         python3-xlrd \
         python3-xlwt \
         xz-utils \
-        nginx && \
+        gettext-base \
+        gosu && \
     echo "Downloading wkhtmltopdf..." && \
     curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.jammy_amd64.deb && \
     echo "Verifying wkhtmltopdf package..." && \
