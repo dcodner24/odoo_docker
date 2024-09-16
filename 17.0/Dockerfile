@@ -84,6 +84,10 @@ RUN apt-get update && \
     apt-get install -y nginx && \
     rm -rf /var/lib/apt/lists/*
 
+# Install gosu for easy step-down from root
+RUN apt-get update && apt-get install -y gosu \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy Nginx configuration file
 COPY ./nginx.conf /etc/nginx/nginx.conf
 
@@ -110,9 +114,6 @@ EXPOSE 8069 8071 8072
 
 # Set the default config file
 ENV ODOO_RC /etc/odoo/odoo.conf
-
-# Switch back to odoo user for security
-USER odoo
 
 # Add logging for build process
 RUN set -e && \
