@@ -93,6 +93,17 @@ chown odoo:odoo /var/log/nginx/access.log /var/log/nginx/error.log
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Nginx..."
 nginx
 
+# Give odoo user access to the configuration file
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Ensuring odoo user has access to the configuration file..."
+if [ -f /etc/odoo/odoo.conf ]; then
+    chown odoo:odoo /etc/odoo/odoo.conf
+    chmod 644 /etc/odoo/odoo.conf
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Permissions updated for /etc/odoo/odoo.conf"
+else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Error: /etc/odoo/odoo.conf not found"
+    exit 1
+fi
+
 # Switch to odoo user
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Switching to odoo user..."
 exec gosu odoo bash << EOF
