@@ -129,8 +129,15 @@ if [ -z "\$ODOO_CMD" ]; then
     exit 1
 fi
 
+# Debug information
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Debug: ODOO_CMD=$ODOO_CMD"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Debug: Config file permissions:"
+ls -l /etc/odoo/odoo.conf
+
 # Start Odoo server
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing Odoo command..."
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] DB_ARGS: ${DB_ARGS[@]}"
-exec $ODOO_CMD -c /etc/odoo/odoo.conf "$@" "${DB_ARGS[@]}"
+set -x  # Enable command echoing
+exec $ODOO_CMD --config=/etc/odoo/odoo.conf "$@" "${DB_ARGS[@]}"
+set +x  # Disable command echoing
 EOF
