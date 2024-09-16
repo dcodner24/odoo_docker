@@ -57,7 +57,14 @@ update_addons_path
 # Run as root
 # Update Nginx configuration
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Updating Nginx configuration..."
-envsubst '${PORT} ${SERVER_NAME}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+if [ -f /etc/nginx/nginx.conf ]; then
+    envsubst '${PORT} ${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp
+    mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Nginx configuration updated successfully."
+else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Error: /etc/nginx/nginx.conf not found."
+    exit 1
+fi
 
 # Ensure Nginx can write to its log files
 touch /var/log/nginx/access.log /var/log/nginx/error.log
