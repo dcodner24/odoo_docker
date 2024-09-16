@@ -120,5 +120,6 @@ fi
 
 # Start Odoo server
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing Odoo command..."
-exec \$ODOO_CMD -c /etc/odoo/odoo.conf "\$@" "\${DB_ARGS[@]}"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] DB_ARGS: ${DB_ARGS[@]}"
+exec $ODOO_CMD -c /etc/odoo/odoo.conf "$@" "${DB_ARGS[@]}"
 EOF
