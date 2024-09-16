@@ -83,7 +83,8 @@ RUN chmod +x /usr/bin/odoo && \
 ENV ODOO_RC /etc/odoo/odoo.conf
 
 # Ensure odoo user has necessary permissions
-RUN chown -R odoo:odoo /etc/odoo && \
+RUN mkdir -p /mnt/extra-addons && \
+    chown -R odoo:odoo /etc/odoo && \
     chown -R odoo:odoo /var/lib/odoo && \
     chown -R odoo:odoo /mnt/extra-addons && \
     chmod -R 755 /mnt/extra-addons
