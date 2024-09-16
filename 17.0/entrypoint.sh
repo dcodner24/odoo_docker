@@ -117,3 +117,8 @@ if [ -z "\$ODOO_CMD" ]; then
     ls -l /usr/bin/odoo
     exit 1
 fi
+
+# Start Odoo server
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing Odoo command..."
+exec \$ODOO_CMD -c /etc/odoo/odoo.conf "\$@" "\${DB_ARGS[@]}"
+EOF
