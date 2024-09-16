@@ -2,16 +2,29 @@
 
 set -e
 
-# Handle Postgres credentials
-if [ -v POSTGRES_PASSWORD_FILE ]; then
-    POSTGRES_PASSWORD="$(< $POSTGRES_PASSWORD_FILE)"
-fi
+echo "Starting entrypoint script..."
 
-# PostgreSQL connection parameters
-: ${POSTGRES_HOST:=${POSTGRES_HOST:='db'}}
-: ${POSTGRES_PORT:=${POSTGRES_PORT:=5432}}
-: ${POSTGRES_USER:=${POSTGRES_USER:='odoo'}}
-: ${POSTGRES_PASSWORD:=${POSTGRES_PASSWORD:='odoo'}}
+# Function to log environment variables
+log_env_vars() {
+    echo "Current environment variables:"
+    env | sort
+}
+
+# Log initial environment variables
+log_env_vars
+
+# set the postgres database host, port, user and password according to the environment
+# and pass them as arguments to the odoo process if not present in the config file
+: ${HOST:=${DB_PORT_5432_TCP_ADDR:='db'}}
+: ${PORT:=${DB_PORT_5432_TCP_PORT:=5432}}
+: ${USER:=${DB_ENV_POSTGRES_USER:=${POSTGRES_USER:='odoo'}}}
+: ${PASSWORD:=${DB_ENV_POSTGRES_PASSWORD:=${POSTGRES_PASSWORD:='odoo'}}}
+
+echo "Database connection details:"
+echo "Host: $HOST"
+echo "Port: $PORT"
+echo "User: $USER"
+echo "Password: [REDACTED]"
 
 DB_ARGS=()
 function check_config() {
@@ -19,27 +32,48 @@ function check_config() {
     value="$2"
     if grep -q -E "^\s*\b${param}\b\s*=" "$ODOO_RC" ; then       
         value=$(grep -E "^\s*\b${param}\b\s*=" "$ODOO_RC" | cut -d " " -f3 | sed 's/["\n\r]//g')
-    fi
+    fi;
     DB_ARGS+=("--${param}")
     DB_ARGS+=("${value}")
 }
+check_config "db_host" "$HOST"
+check_config "db_port" "$PORT"
+check_config "db_user" "$USER"
+check_config "db_password" "$PASSWORD"
 
-check_config "db_host" "$POSTGRES_HOST"
-check_config "db_port" "$POSTGRES_PORT"
-check_config "db_user" "$POSTGRES_USER"
-check_config "db_password" "$POSTGRES_PASSWORD"
+echo "DB_ARGS: ${DB_ARGS[@]}"
 
-# Set default SERVER_NAME if not provided
-: ${SERVER_NAME:=${SERVER_NAME:='localhost'}}
+# Function to update ADDONS_PATH environment variable
+update_addons_path() {
+    local custom_modules_path="/mnt/custom-modules"
+    local extra_addons_path="/mnt/extra-addons"
+    local default_addons_path="/usr/lib/python3/dist-packages/odoo/addons"
+    
+    ADDONS_PATH="${default_addons_path},${extra_addons_path}"
 
-# Wait for PostgreSQL to be ready
-echo "Waiting for PostgreSQL..."
-if ! wait-for-psql.py --db_host="$POSTGRES_HOST" --db_port="$POSTGRES_PORT" --db_user="$POSTGRES_USER" --db_password="$POSTGRES_PASSWORD" --timeout=60; then
-    echo "PostgreSQL is not available. Exiting."
-    exit 1
-fi
+    # Check if custom modules directory exists and is not empty
+    if [ -d "$custom_modules_path" ] && [ "$(ls -A $custom_modules_path)" ]; then
+        echo "Custom modules found. Adding to addons path."
+        ADDONS_PATH="${custom_modules_path},${ADDONS_PATH}"
+    else
+        echo "No custom modules found or directory is empty."
+    fi
 
-echo "PostgreSQL is ready"
+    export ADDONS_PATH
+    echo "Updated ADDONS_PATH: $ADDONS_PATH"
+}
+
+# Update addons path
+update_addons_path
+
+# Substitute environment variables in Nginx config
+echo "Updating Nginx configuration..."
+envsubst '${PORT} ${SERVER_NAME}' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp
+mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
+
+# Check Nginx configuration
+echo "Checking Nginx configuration..."
+nginx -t || exit 1
 
 # Start Odoo
 echo "Starting Odoo..."
@@ -49,7 +83,14 @@ if [ ! -f "$ODOO_CMD" ]; then
     exit 1
 fi
 
-$ODOO_CMD "$@" "${DB_ARGS[@]}" &
+# Use envsubst to replace ${ADDONS_PATH} in odoo.conf
+echo "Updating Odoo configuration..."
+envsubst '${ADDONS_PATH}' < /odoo.conf > /odoo.conf.tmp
+mv /odoo.conf.tmp /odoo.conf
+echo "Updated Odoo configuration:"
+cat /odoo.conf
+
+$ODOO_CMD -c /odoo.conf "$@" "${DB_ARGS[@]}" &
 ODOO_PID=$!
 
 # Wait for Odoo to become responsive
@@ -72,15 +113,13 @@ if [ $i -eq 30 ]; then
     exit 1
 fi
 
-# Substitute environment variables in Nginx config
-sudo -u root bash -c "envsubst '\${PORT} \${SERVER_NAME}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf"
-
-# Validate the Nginx configuration
-sudo -u root nginx -t || exit 1
-
 # Start Nginx
 echo "Starting Nginx..."
-sudo -u root nginx
+nginx
 
+echo "All services started. Monitoring Odoo process..."
 # Keep the container running
 wait $ODOO_PID
+
+echo "Odoo process has ended. Exiting."
+exit 1

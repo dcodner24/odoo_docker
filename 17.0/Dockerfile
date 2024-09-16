@@ -3,13 +3,10 @@ MAINTAINER Odoo S.A. <info@odoo.com>
 
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 
-# Generate locale C.UTF-8 for Postgres and general locale data
+# Generate locale C.UTF-8 for postgres and general locale data
 ENV LANG en_US.UTF-8
 
-# Retrieve the target architecture to install the correct wkhtmltopdf package
-ARG TARGETARCH
-
-# Install dependencies, lessc, less-plugin-clean-css, wkhtmltopdf, and Nginx
+# Install some deps, lessc and less-plugin-clean-css, and wkhtmltopdf
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
@@ -37,23 +34,9 @@ RUN apt-get update && \
         python3-xlrd \
         python3-xlwt \
         xz-utils \
-        gettext && \
-    # Install latest stable Nginx
-    echo "deb http://nginx.org/packages/ubuntu/ jammy nginx" > /etc/apt/sources.list.d/nginx.list && \
-    curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add - && \
-    apt-get update && \
-    apt-get install -y nginx && \
-    if [ -z "${TARGETARCH}" ]; then \
-        TARGETARCH="$(dpkg --print-architecture)"; \
-    fi; \
-    WKHTMLTOPDF_ARCH=${TARGETARCH} && \
-    case ${TARGETARCH} in \
-    "amd64") WKHTMLTOPDF_ARCH=amd64 && WKHTMLTOPDF_SHA=967390a759707337b46d1c02452e2bb6b2dc6d59  ;; \
-    "arm64")  WKHTMLTOPDF_SHA=90f6e69896d51ef77339d3f3a20f8582bdf496cc  ;; \
-    "ppc64le" | "ppc64el") WKHTMLTOPDF_ARCH=ppc64el && WKHTMLTOPDF_SHA=5312d7d34a25b321282929df82e3574319aed25c  ;; \
-    esac \
-    && curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.jammy_${WKHTMLTOPDF_ARCH}.deb \
-    && echo ${WKHTMLTOPDF_SHA} wkhtmltox.deb | sha1sum -c - \
+        nginx \
+    && curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.jammy_amd64.deb \
+    && echo "967390a759707337b46d1c02452e2bb6b2dc6d59 wkhtmltox.deb" | sha1sum -c - \
     && apt-get install -y --no-install-recommends ./wkhtmltox.deb \
     && rm -rf /var/lib/apt/lists/* wkhtmltox.deb
 
@@ -84,37 +67,33 @@ RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/od
     && apt-get -y install --no-install-recommends ./odoo.deb \
     && rm -rf /var/lib/apt/lists/* odoo.deb
 
-# Add Odoo to PATH
-ENV PATH=$PATH:/usr/bin
+# Install Nginx (latest stable version)
+RUN apt-get update && \
+    apt-get install -y curl gnupg2 ca-certificates lsb-release && \
+    echo "deb http://nginx.org/packages/ubuntu `lsb_release -cs` nginx" \
+    | tee /etc/apt/sources.list.d/nginx.list && \
+    curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add - && \
+    apt-get update && \
+    apt-get install -y nginx && \
+    rm -rf /var/lib/apt/lists/*
 
-# Make sure the Odoo script is executable
-RUN chmod +x /usr/bin/odoo
-
-# Ensure Odoo is in the PATH
-ENV PATH="/usr/bin:/usr/local/bin:${PATH}"
-
-# Create a new directory for custom modules and copy the modules there
-RUN mkdir -p /mnt/custom-modules
-COPY ./custom-modules /mnt/custom-modules
-
-# Ensure permissions are correct for the custom modules
-RUN chown -R odoo /mnt/custom-modules
-
-# Install Nginx
-RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
-
-# Copy Nginx configuration template
-COPY ./nginx.conf.template /etc/nginx/nginx.conf.template
+# Copy Nginx configuration file
+COPY ./nginx.conf /etc/nginx/nginx.conf
 
 # Copy entrypoint script, Odoo configuration file, and wait-for-psql script
 COPY ./entrypoint.sh /
 COPY ./odoo.conf /etc/odoo/
 COPY ./wait-for-psql.py /usr/local/bin/wait-for-psql.py
 
+# Create a new directory for custom modules and copy the modules there
+RUN mkdir -p /mnt/custom-modules
+COPY ./custom-modules /mnt/custom-modules
+
 # Set permissions and Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users addons
 RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /mnt/extra-addons \
     && chown -R odoo /mnt/extra-addons \
+    && chown -R odoo /mnt/custom-modules \
     && chmod +x /entrypoint.sh /usr/local/bin/wait-for-psql.py
 
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
@@ -125,11 +104,18 @@ EXPOSE 8069 8071 8072
 # Set the default config file
 ENV ODOO_RC /etc/odoo/odoo.conf
 
-# Install curl for health checks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
 # Set default user when running the container
 USER odoo
 
+# Add logging for build process
+RUN echo "Odoo version: $ODOO_VERSION" && \
+    echo "Odoo release: $ODOO_RELEASE" && \
+    echo "Odoo SHA: $ODOO_SHA" && \
+    echo "Build completed successfully."
+
+# Log the final state of the image
+RUN echo "Final image state:" && \
+    ls -R /
+
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["--config", "/etc/odoo/odoo.conf"]
+CMD ["odoo"]
