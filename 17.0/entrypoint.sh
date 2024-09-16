@@ -137,7 +137,20 @@ ls -l /etc/odoo/odoo.conf
 # Start Odoo server
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing Odoo command..."
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] DB_ARGS: ${DB_ARGS[@]}"
-set -x  # Enable command echoing
-exec $ODOO_CMD --config=/etc/odoo/odoo.conf "$@" "${DB_ARGS[@]}"
-set +x  # Disable command echoing
+
+if [ -n "$ODOO_CMD" ]; then
+    set -x  # Enable command echoing
+    exec $ODOO_CMD --config=/etc/odoo/odoo.conf \
+        --db_host=${DB_HOST} \
+        --db_port=${DB_PORT} \
+        --db_user=${DB_USER} \
+        --db_password=${DB_PASSWORD} \
+        -d ${DB_NAME} \
+        "$@"
+    set +x  # Disable command echoing
+else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Error: ODOO_CMD is empty. Cannot start Odoo."
+    exit 1
+fi
+
 EOF
