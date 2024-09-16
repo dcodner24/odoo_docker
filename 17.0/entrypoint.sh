@@ -4,47 +4,21 @@ set -e
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting entrypoint script..."
 
-# Set database connection details from environment variables
-DB_HOST="${POSTGRES_HOST:-db}"
-DB_PORT="${POSTGRES_PORT:-5432}"
-DB_USER="${POSTGRES_USER:-odoo}"
-DB_PASSWORD="${POSTGRES_PASSWORD:-odoo}"
-DB_NAME="${POSTGRES_DB:-postgres}"
-
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Database connection details:"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Host: $DB_HOST"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Port: $DB_PORT"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] User: $DB_USER"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Database: $DB_NAME"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Host: ${POSTGRES_HOST:-db}"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Port: ${POSTGRES_PORT:-5432}"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] User: ${POSTGRES_USER:-odoo}"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Database: ${POSTGRES_DB:-postgres}"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Password: [REDACTED]"
-
-# Set up DB_ARGS
-DB_ARGS=()
-function check_config() {
-    param="$1"
-    value="$2"
-    if grep -q -E "^\s*\b${param}\b\s*=" "$ODOO_RC" ; then       
-        value=$(grep -E "^\s*\b${param}\b\s*=" "$ODOO_RC" | cut -d " " -f3 | sed 's/["\n\r]//g')
-    fi;
-    DB_ARGS+=("--${param}")
-    DB_ARGS+=("${value}")
-}
-check_config "db_host" "$DB_HOST"
-check_config "db_port" "$DB_PORT"
-check_config "db_user" "$DB_USER"
-check_config "db_password" "$DB_PASSWORD"
-check_config "database" "$DB_NAME"
-
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] DB_ARGS: ${DB_ARGS[@]}"
 
 # Wait for PostgreSQL
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for PostgreSQL..."
 python3 /usr/local/bin/wait-for-psql.py \
-    --db_host "$DB_HOST" \
-    --db_port "$DB_PORT" \
-    --db_user "$DB_USER" \
-    --db_password "$DB_PASSWORD" \
-    --db_name "$DB_NAME" \
+    --db_host "${POSTGRES_HOST:-db}" \
+    --db_port "${POSTGRES_PORT:-5432}" \
+    --db_user "${POSTGRES_USER:-odoo}" \
+    --db_password "${POSTGRES_PASSWORD:-odoo}" \
+    --db_name "${POSTGRES_DB:-postgres}" \
     --timeout 30
 
 if [ $? -ne 0 ]; then
@@ -108,19 +82,19 @@ fi
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Switching to odoo user..."
 exec gosu odoo bash << EOF
 # Set a full PATH to ensure all directories are included
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 
 # Start Odoo
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Odoo..."
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Current PATH: \$PATH"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Current PATH: $PATH"
 
 # Try to find the Odoo executable
-ODOO_CMD=\$(which odoo || true)
-if [ -z "\$ODOO_CMD" ] && [ -x "/usr/bin/odoo" ]; then
+ODOO_CMD=$(which odoo || true)
+if [ -z "$ODOO_CMD" ] && [ -x "/usr/bin/odoo" ]; then
     ODOO_CMD="/usr/bin/odoo"
 fi
 
-if [ -z "\$ODOO_CMD" ]; then
+if [ -z "$ODOO_CMD" ]; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Error: Odoo executable not found in PATH"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Searching for Odoo executable..."
     find / -name odoo -type f 2>/dev/null || echo "No 'odoo' executable found"
@@ -129,23 +103,22 @@ if [ -z "\$ODOO_CMD" ]; then
     exit 1
 fi
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Odoo executable found at \$ODOO_CMD"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Odoo executable found at $ODOO_CMD"
 
-# Use envsubst to replace \${ADDONS_PATH} in odoo.conf
+# Use envsubst to replace ${ADDONS_PATH} in odoo.conf
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Updating Odoo configuration..."
-envsubst '\${ADDONS_PATH}' < /etc/odoo/odoo.conf > /etc/odoo/odoo.conf.tmp
+envsubst '${ADDONS_PATH}' < /etc/odoo/odoo.conf > /etc/odoo/odoo.conf.tmp
 mv /etc/odoo/odoo.conf.tmp /etc/odoo/odoo.conf
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Updated Odoo configuration:"
 cat /etc/odoo/odoo.conf
 
 # Start Odoo server
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing Odoo command..."
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] DB_ARGS: \${DB_ARGS[@]}"
 
-exec \$ODOO_CMD -c /etc/odoo/odoo.conf "\$@" \
-    --db_host=\${DB_HOST} \
-    --db_port=\${DB_PORT} \
-    --db_user=\${DB_USER} \
-    --db_password=\${DB_PASSWORD} \
-    -d \${DB_NAME}
+exec $ODOO_CMD -c /etc/odoo/odoo.conf "$@" \
+    --db_host=${POSTGRES_HOST:-db} \
+    --db_port=${POSTGRES_PORT:-5432} \
+    --db_user=${POSTGRES_USER:-odoo} \
+    --db_password=${POSTGRES_PASSWORD:-odoo} \
+    -d ${POSTGRES_DB:-postgres}
 EOF
