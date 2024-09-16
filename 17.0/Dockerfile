@@ -75,6 +75,22 @@ RUN curl -o odoo.deb -sSL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/od
     && apt-get -y install --no-install-recommends ./odoo.deb \
     && rm -rf /var/lib/apt/lists/* odoo.deb
 
+# Ensure Odoo command is executable and in PATH
+RUN chmod +x /usr/bin/odoo && \
+    ln -sf /usr/bin/odoo /usr/local/bin/odoo
+
+# Set the default config file
+ENV ODOO_RC /etc/odoo/odoo.conf
+
+# Ensure odoo user has necessary permissions
+RUN chown -R odoo:odoo /etc/odoo && \
+    chown -R odoo:odoo /var/lib/odoo && \
+    chown -R odoo:odoo /mnt/extra-addons && \
+    chmod -R 755 /mnt/extra-addons
+
+# Add odoo command to odoo user's PATH
+RUN echo 'export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"' >> /etc/bash.bashrc
+
 # Install Nginx (latest stable version)
 RUN apt-get update && \
     apt-get install -y curl gnupg2 ca-certificates lsb-release && \
@@ -112,9 +128,6 @@ VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
 
 # Expose Odoo services
 EXPOSE 8069 8071 8072
-
-# Set the default config file
-ENV ODOO_RC /etc/odoo/odoo.conf
 
 # Add logging for build process
 RUN set -e && \

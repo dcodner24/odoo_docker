@@ -73,34 +73,39 @@ nginx
 # Switch to odoo user
 echo "Switching to odoo user..."
 exec gosu odoo bash << EOF
+# Set a full PATH to ensure all directories are included
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH"
 
 # Start Odoo
 echo "Starting Odoo..."
+echo "Current PATH: \$PATH"
+
 # Try to find the Odoo executable
-ODOO_CMD=$(which odoo)
-if [ -z "$ODOO_CMD" ]; then
-    ODOO_CMD=$(which openerp-server)
+ODOO_CMD=\$(which odoo || true)
+if [ -z "\$ODOO_CMD" ] && [ -x "/usr/bin/odoo" ]; then
+    ODOO_CMD="/usr/bin/odoo"
 fi
-if [ -z "$ODOO_CMD" ]; then
+
+if [ -z "\$ODOO_CMD" ]; then
     echo "Error: Odoo executable not found in PATH"
-    echo "Current PATH: $PATH"
     echo "Searching for Odoo executable..."
     find / -name odoo -type f 2>/dev/null || echo "No 'odoo' executable found"
-    find / -name openerp-server -type f 2>/dev/null || echo "No 'openerp-server' executable found"
+    echo "Checking permissions of /usr/bin/odoo:"
+    ls -l /usr/bin/odoo
     exit 1
 fi
 
-echo "Odoo executable found at $ODOO_CMD"
+echo "Odoo executable found at \$ODOO_CMD"
 
-# Use envsubst to replace ${ADDONS_PATH} in odoo.conf
+# Use envsubst to replace \${ADDONS_PATH} in odoo.conf
 echo "Updating Odoo configuration..."
-envsubst '${ADDONS_PATH}' < /odoo.conf > /odoo.conf.tmp
-mv /odoo.conf.tmp /odoo.conf
+envsubst '\${ADDONS_PATH}' < /etc/odoo/odoo.conf > /etc/odoo/odoo.conf.tmp
+mv /etc/odoo/odoo.conf.tmp /etc/odoo/odoo.conf
 echo "Updated Odoo configuration:"
-cat /odoo.conf
+cat /etc/odoo/odoo.conf
 
-$ODOO_CMD -c /odoo.conf "$@" "${DB_ARGS[@]}" &
-ODOO_PID=$!
+\$ODOO_CMD -c /etc/odoo/odoo.conf "\$@" "\${DB_ARGS[@]}" &
+ODOO_PID=\$!
 
 # Wait for Odoo to become responsive
 echo "Waiting for Odoo to start..."
@@ -109,26 +114,23 @@ for i in {1..30}; do
         echo "Odoo is up and running"
         break
     fi
-    if ! ps -p $ODOO_PID > /dev/null; then
+    if ! ps -p \$ODOO_PID > /dev/null; then
         echo "Odoo process has died. Exiting."
         exit 1
     fi
-    echo "Waiting for Odoo to become responsive... (attempt $i)"
+    echo "Waiting for Odoo to become responsive... (attempt \$i)"
     sleep 2
 done
 
-if [ $i -eq 30 ]; then
+if [ \$i -eq 30 ]; then
     echo "Odoo did not start within 60 seconds. Exiting."
     exit 1
 fi
 
-# Start Nginx
-echo "Starting Nginx..."
-nginx
-
 echo "All services started. Monitoring Odoo process..."
 # Keep the container running
-wait $ODOO_PID
+wait \$ODOO_PID
 
 echo "Odoo process has ended. Exiting."
 exit 1
+EOF
