@@ -129,28 +129,23 @@ if [ -z "\$ODOO_CMD" ]; then
     exit 1
 fi
 
-# Debug information
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Debug: ODOO_CMD=$ODOO_CMD"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Debug: Config file permissions:"
-ls -l /etc/odoo/odoo.conf
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Odoo executable found at \$ODOO_CMD"
+
+# Use envsubst to replace \${ADDONS_PATH} in odoo.conf
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Updating Odoo configuration..."
+envsubst '\${ADDONS_PATH}' < /etc/odoo/odoo.conf > /etc/odoo/odoo.conf.tmp
+mv /etc/odoo/odoo.conf.tmp /etc/odoo/odoo.conf
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Updated Odoo configuration:"
+cat /etc/odoo/odoo.conf
 
 # Start Odoo server
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executing Odoo command..."
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] DB_ARGS: ${DB_ARGS[@]}"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] DB_ARGS: \${DB_ARGS[@]}"
 
-if [ -n "$ODOO_CMD" ]; then
-    set -x  # Enable command echoing
-    exec $ODOO_CMD --config=/etc/odoo/odoo.conf \
-        --db_host=${DB_HOST} \
-        --db_port=${DB_PORT} \
-        --db_user=${DB_USER} \
-        --db_password=${DB_PASSWORD} \
-        -d ${DB_NAME} \
-        "$@"
-    set +x  # Disable command echoing
-else
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Error: ODOO_CMD is empty. Cannot start Odoo."
-    exit 1
-fi
-
+exec \$ODOO_CMD -c /etc/odoo/odoo.conf "\$@" \
+    --db_host=\${DB_HOST} \
+    --db_port=\${DB_PORT} \
+    --db_user=\${DB_USER} \
+    --db_password=\${DB_PASSWORD} \
+    -d \${DB_NAME}
 EOF
