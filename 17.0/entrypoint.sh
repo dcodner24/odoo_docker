@@ -39,6 +39,20 @@ fi
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] PostgreSQL is ready."
 
+# Find the Odoo executable
+if command -v odoo &> /dev/null; then
+    ODOO_CMD=$(command -v odoo)
+elif [ -x "/usr/bin/odoo" ]; then
+    ODOO_CMD="/usr/bin/odoo"
+elif [ -x "/usr/local/bin/odoo" ]; then
+    ODOO_CMD="/usr/local/bin/odoo"
+else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Error: Odoo executable not found"
+    exit 1
+fi
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Odoo executable found at: $ODOO_CMD"
+
 # Set up DB_ARGS for Odoo
 DB_ARGS=(
     "--db_host" "$DB_HOST"
@@ -52,4 +66,4 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] DB_ARGS: ${DB_ARGS[@]}"
 
 # Start Odoo
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Odoo..."
-exec odoo "$@" "${DB_ARGS[@]}"
+exec "$ODOO_CMD" "$@" "${DB_ARGS[@]}"
