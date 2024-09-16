@@ -121,15 +121,8 @@ RUN set -e && \
     echo "Odoo release: $ODOO_RELEASE" && \
     echo "Odoo SHA: $ODOO_SHA" && \
     echo "Python version: $(python3 --version)" && \
-    echo "Nginx version: $(nginx -v 2>&1)" && \
+    echo "$(nginx -v 2>&1)" && \
     echo "Build completed successfully."
-
-# Log a safer subset of the final image state
-RUN set -e && \
-    echo "Final image state (safe subset):" && \
-    ls -l /home/odoo && \
-    ls -l /etc/odoo && \
-    ls -l /mnt/extra-addons
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["odoo"]
