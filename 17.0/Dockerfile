@@ -114,11 +114,13 @@ COPY ./entrypoint.sh /
 COPY ./odoo.conf /etc/odoo/
 COPY ./wait-for-psql.py /usr/local/bin/wait-for-psql.py
 
-# Conditionally create and populate custom-modules directory
+# Conditionally create custom-modules directory and copy modules if they exist
 RUN if [ -d "./custom-modules" ] && [ "$(ls -A ./custom-modules 2>/dev/null)" ]; then \
         echo "Custom modules found. Creating directory and copying files..."; \
         mkdir -p /mnt/custom-modules && \
-        cp -R ./custom-modules/* /mnt/custom-modules/; \
+        cp -R ./custom-modules/* /mnt/custom-modules/ && \
+        chown -R odoo:odoo /mnt/custom-modules && \
+        chmod -R 755 /mnt/custom-modules; \
     else \
         echo "No custom modules found or directory is empty. Skipping creation."; \
     fi
@@ -136,10 +138,6 @@ RUN if [ -d "/mnt/custom-modules" ]; then \
         chown -R odoo:odoo /mnt/custom-modules && \
         chmod -R 755 /mnt/custom-modules; \
     fi
-
-# Create a new directory for custom modules and copy the modules there
-RUN mkdir -p /mnt/custom-modules
-COPY ./custom-modules /mnt/custom-modules
 
 # Set permissions and Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users addons
 RUN chown odoo /etc/odoo/odoo.conf \
