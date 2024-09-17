@@ -143,7 +143,9 @@ RUN if [ -d "/mnt/custom-modules" ]; then \
 RUN chown odoo /etc/odoo/odoo.conf \
     && mkdir -p /mnt/extra-addons \
     && chown -R odoo /mnt/extra-addons \
-    && chown -R odoo /mnt/custom-modules \
+    && if [ -d "/mnt/custom-modules" ]; then \
+         chown -R odoo /mnt/custom-modules; \
+       fi \
     && chmod +x /entrypoint.sh /usr/local/bin/wait-for-psql.py
 
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
