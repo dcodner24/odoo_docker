@@ -114,6 +114,53 @@ COPY ./entrypoint.sh /
 COPY ./odoo.conf /etc/odoo/
 COPY ./wait-for-psql.py /usr/local/bin/wait-for-psql.py
 
+# Conditionally create and populate custom-modules directory
+RUN if [ -d "/mnt/custom-modules" ] && [ "$(ls -A /mnt/custom-modules 2>/dev/null)" ]; then \
+        echo "Custom modules found. Directory already exists and contains files."; \
+    elif [ ! -d "/mnt/custom-modules" ]; then \
+        echo "Custom modules directory doesn't exist. Creating it..."; \
+        mkdir -p /mnt/custom-modules; \
+    else \
+        echo "Custom modules directory exists but is empty."; \
+    fi
+
+# Update ADDONS_PATH in odoo.conf
+RUN if [ -d "/mnt/custom-modules" ] && [ "$(ls -A /mnt/custom-modules 2>/dev/null)" ]; then \
+        echo "Updating ADDONS_PATH to include custom modules..."; \
+        sed -i 's|addons_path = |addons_path = /mnt/custom-modules,|' /etc/odoo/odoo.conf; \
+    else \
+        echo "No custom modules found. ADDONS_PATH remains unchanged."; \
+    fi
+
+# Ensure correct permissions for custom-modules directory
+RUN chown -R odoo:odoo /mnt/custom-modules && \
+    chmod -R 755 /mnt/custom-modules
+
+# Add odoo command to odoo user's PATH
+RUN echo 'export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"' >> /etc/bash.bashrc
+
+# Install Nginx (latest stable version)
+RUN apt-get update && \
+    apt-get install -y curl gnupg2 ca-certificates lsb-release && \
+    echo "deb http://nginx.org/packages/ubuntu `lsb_release -cs` nginx" \
+    | tee /etc/apt/sources.list.d/nginx.list && \
+    curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add - && \
+    apt-get update && \
+    apt-get install -y nginx && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install gosu for easy step-down from root
+RUN apt-get update && apt-get install -y gosu \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Nginx configuration file
+COPY ./nginx.conf /etc/nginx/nginx.conf
+
+# Copy entrypoint script, Odoo configuration file, and wait-for-psql script
+COPY ./entrypoint.sh /
+COPY ./odoo.conf /etc/odoo/
+COPY ./wait-for-psql.py /usr/local/bin/wait-for-psql.py
+
 # Create a new directory for custom modules and copy the modules there
 RUN mkdir -p /mnt/custom-modules
 COPY ./custom-modules /mnt/custom-modules
